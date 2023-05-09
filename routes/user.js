@@ -52,20 +52,10 @@ router.post("/login", async (req, res, next) => {
     });
 });
 
-router.post('/logout/:id',   async(req, res) => {
+router.post('/compte',   async(req, res, next) => {
+  const account = [];
     
-  const uid = req.params.id
-  fsAdmin.auth()
-  .revokeRefreshTokens(uid)
-  .then(() => {
-    signOut(auth).then(() => {
-      // Sign-out successful.
-      return res.send('Token revoké avec succès');
-    }).catch((error) => {
-      res.send(error)
-    });
-    
-  })
+ 
      
   
 })
@@ -81,6 +71,7 @@ router.post('/post', async (req, res) => {
       typeAbonnement: req.body.typeAbonnement,
       numeroCarte: req.body.numeroCarte,
       password: req.body.password,
+      code: req.body.code,
       dateInscrit: new Date()
   })
  

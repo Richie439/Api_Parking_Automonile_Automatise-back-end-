@@ -29,6 +29,10 @@ const dataSchema = new mongoose.Schema({
         required: false,
         type:String
     },
+    code: {
+        required: false,
+        type:String
+    },
     oldPassword: {
         required: false,
         type:String
@@ -40,3 +44,5 @@ const dataSchema = new mongoose.Schema({
 })
 
 module.exports = mongoose.model('users', dataSchema)
+
+
