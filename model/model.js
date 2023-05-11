@@ -25,15 +25,19 @@ const dataSchema = new mongoose.Schema({
         required: true,
         type:String
     },
+    rfid: {
+        required: false,
+        type:String
+    },
+    matricule: {
+        required: false,
+        type:String
+    },
     password: {
         required: false,
         type:String
     },
     code: {
-        required: false,
-        type:String
-    },
-    oldPassword: {
         required: false,
         type:String
     },

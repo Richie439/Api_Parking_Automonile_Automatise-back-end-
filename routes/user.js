@@ -70,6 +70,8 @@ router.post('/post', async (req, res) => {
       telephone: req.body.telephone,
       typeAbonnement: req.body.typeAbonnement,
       numeroCarte: req.body.numeroCarte,
+      rfid: req.body.rfid,
+      matricule: req.body.matricule,
       password: req.body.password,
       code: req.body.code,
       dateInscrit: new Date()
