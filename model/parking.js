@@ -1,10 +1,7 @@
 
 const mongoose = require('mongoose');
 const dataSchema = new mongoose.Schema({
-    nom: {
-        required: true,
-        type: String
-    },
+    
     adresse: {
         required: true,
         type: String
@@ -28,6 +25,10 @@ const dataSchema = new mongoose.Schema({
     dateSortie:{
         required: false,
         type: Date
+    },
+    user:{
+        type: String,
+        ref: 'users'
     }
    
 })

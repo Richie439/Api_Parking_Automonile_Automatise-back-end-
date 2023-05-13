@@ -17,7 +17,7 @@ router.post("/login", async (req, res, next) => {
 
   existingUser = await Model.findOne({ email: email });
   if (!existingUser) {
-    return res.status(400).send("email n'existe pas...!");
+    return res.status(404).send("email n'existe pas...!");
   }
   //check if password is correct
   const isPasswordValid = await bcrypt.compare(password, existingUser.password);
