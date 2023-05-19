@@ -1,10 +1,7 @@
 
 const mongoose = require('mongoose');
 const dataSchema = new mongoose.Schema({
-    nom: {
-        required: true,
-        type: String
-    },
+    
     adresse: {
         required: true,
         type: String
@@ -18,8 +15,9 @@ const dataSchema = new mongoose.Schema({
         type:String
     },
     place:{
-        required: true,
-        type: String
+        // required: true,
+        type: String,
+        ref: 'site'
     },
     dateEntrer:{
         required: false,
@@ -28,6 +26,14 @@ const dataSchema = new mongoose.Schema({
     dateSortie:{
         required: false,
         type: Date
+    },
+    // site:{
+    //     type: Number,
+    //     ref: 'site'
+    // },
+    user:{
+        type: String,
+        ref: 'users'
     }
    
 })
