@@ -76,6 +76,8 @@ router.post('/post', async (req, res) => {
       code: req.body.code,
       dateInscrit: new Date()
   })
+
+  console.log(req.body);
  
   try {
     const hash = await bcrypt.hash(newUser.password, 10);

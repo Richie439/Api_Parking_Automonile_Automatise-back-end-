@@ -36,3 +36,20 @@ router.post('/parking', async (req, res) => {
     }
     
   })
+
+  router.get('/getParking', async  (req, res) => {
+
+ 
+    const token = req.headers.authorization?.split(' ')[1] || req.headers?.authorization;
+  
+    if(!token) return res.send("Veillez ajouter un token")
+   
+          try {    
+            const data = await Model.find();
+            return res.json(data)
+        } catch(error) {
+          return res.send(error);
+        }
+  
+  
+  })

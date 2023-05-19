@@ -41,6 +41,10 @@ const dataSchema = new mongoose.Schema({
         required: false,
         type:String
     },
+    oldPassword: {
+        required: false,
+        type:String
+    },
     dateInscrit:{
         required: false,
         type: Date
