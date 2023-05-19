@@ -47,6 +47,11 @@ router.post("/login", async (req, res, next) => {
       data: {
         userId: existingUser.id,
         email: existingUser.email,
+        nom: existingUser.nom,
+        prenom: existingUser.prenom,
+        matricule: existingUser.matricule,
+        tel: existingUser.tel,
+        role: existingUser.role,
         token: token,
       },
     });
@@ -63,6 +68,16 @@ router.post('/compte',   async(req, res, next) => {
 router.post('/post', async (req, res) => {
   const users = [];
 
+  const tel = await Model.find();
+  console.log(tel.find(x=>x?.telephone === req.body.telephone));
+
+  const findTel = tel.find(x=>x?.telephone === req?.body?.telephone)?? false;
+  const findMail = tel.find(x=>x?.email === req?.body?.email)?? false;
+  const findRfid = tel.find(x=>x?.rfid === req?.body?.rfid)?? false;
+  if(findTel) return res.send(`Ce numero existe déjà `); 
+  if(findMail) return res.send(`Ce email existe déjà `); 
+  if(findRfid) return res.send(`Cette carte est déjà utilisée`); 
+    
   const newUser = new Model({
       nom: req.body.nom,
       prenom:req.body.prenom,
@@ -71,9 +86,11 @@ router.post('/post', async (req, res) => {
       typeAbonnement: req.body.typeAbonnement,
       numeroCarte: req.body.numeroCarte,
       rfid: req.body.rfid,
-      matricule: req.body.matricule,
+      matricule: generateMatricule(),
       password: req.body.password,
       code: req.body.code,
+      etat: true,
+      role: "user",
       dateInscrit: new Date()
   })
  
@@ -84,7 +101,7 @@ router.post('/post', async (req, res) => {
     // res.json(newUser);
     await newUser.save();
       
-      return res.send(`Utilisateur ajouté `);
+    return res.send(`Utilisateur ajouté `);
       
   }
   catch (error) {
@@ -129,7 +146,7 @@ router.get('/getById/:id',  async (req, res) => {
 router.patch('/update/:id',  async (req, res) => {
 
     const token = req.headers.authorization?.split(' ')[1] || req.headers?.authorization;
-    if(!token) return res.send("Veillez ajouter un token")
+    // if(!token) return res.send("Veillez ajouter un token")
 
     try {
       const id = req.params.id;
@@ -137,6 +154,14 @@ router.patch('/update/:id',  async (req, res) => {
       const options = { new: true };
       
       if (updatedData.password){
+        if (!updatedData.oldpassword) {
+          return res.status(400).send("mot de passe est invalide");
+        }
+        const existingPassword = await Model.findById(id)
+        const isPasswordValid = await bcrypt.compare(updatedData.oldpassword, existingPassword.password);
+        if (!isPasswordValid) {
+          return res.status(400).send("mot de passe est invalide");
+        }
           const hash = await bcrypt.hash(updatedData.password, 10);
           updatedData.password = hash;
           
@@ -144,7 +169,7 @@ router.patch('/update/:id',  async (req, res) => {
           id, updatedData, options
           );
       
-         return res.send(result);
+         return res.send(updatedData);
          
       }
       
@@ -152,13 +177,37 @@ router.patch('/update/:id',  async (req, res) => {
           id, updatedData, options
       )
 
-      res.send(result)
+      return res.send('result modifier')
       
   }
   catch (error) {
       res.status(400).json({ message: error.message })
   }
 })
+
+router.delete('/delete', async(req, res) => {
+  try {
+      // const id = req.params.id;
+      const data = await Model.deleteMany({})
+      res.send(`Le Document avec le nom ${data.prenom} ${data.nom} a été supprimé..`)
+  }
+  catch (error) {
+      res.status(400).json({ message: error.message })
+  }
+})
+
+
+const generateMatricule=()=> {
+  const prefix = "MAT-";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = '';
+
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return prefix + result;
+}
 
 
 
