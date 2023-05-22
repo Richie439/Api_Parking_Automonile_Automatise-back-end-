@@ -22,7 +22,7 @@ const dataSchema = new mongoose.Schema({
         type:String
     },
     typeAbonnement: {
-        required: true,
+        required: false,
         type:String
     },
     rfid: {

@@ -47,7 +47,8 @@ const bodyParser = require('body-parser');
 const SerialPort = require('serialport');
 const jwt = require("jsonwebtoken")
 const mongoose = require('mongoose');
-const cors = require('cors')
+const cors = require('cors');
+const site = require('./model/site');
 // const routes = require('./routes/route');
 // const serreRoute = require('./routes/serreRouter')
 // const arrosageRoute = require('./routes/arrosageRouter')
@@ -89,8 +90,8 @@ const io = require('socket.io')(http, {
 });
 
 
-// const portSerial0 = new SerialPort('/dev/ttyUSB0', { baudRate: 9600 });
-// const parser0 = portSerial0.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+const portSerial0 = new SerialPort('/dev/ttyUSB0', { baudRate: 9600 });
+const parser0 = portSerial0.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 // const portSerial1= new SerialPort('/dev/ttyUSB1', { baudRate:115200  });
 // const parser1 = portSerial1.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 
@@ -126,13 +127,14 @@ io.on('connection', (socket) => {
 // parser.on('open', () => {
 //   console.log('Connexion série établie !');
 // });
-// let test;
-// parser0.on('data', (data) => {
-//   const flameValue = data.toString().trim();
-//   console.log(`Valeur 1  reçue : ${data}`);
-//   test = data
-//   // Effectuez ici le traitement souhaité avec la valeur de flamme reçue
-// });
+let test;
+parser0.on('data', (data) => {
+  const flameValue = data.toString().trim();
+  console.log(`Valeur reçue : ${data}`);
+  getSite();
+  // portSerial0.write("25")
+  // Effectuez ici le traitement souhaité avec la valeur de flamme reçue
+});
 
 // parser1.on('data', (data) => {
 //   const flameValue = data.toString().trim();
@@ -305,18 +307,118 @@ io.on('connection', (socket) => {
 // })
 
 
-const sendDataToESP32 = (data) => {
-  const jsonData = data.toString();
-  portSerial1.write(jsonData, (err) => {
+ 
+
+async function getSite1() {
+
+  // let site1;
+  let nombrePlace1
+  const data = await site.find({});
+  for (const iterator of data) {
+    // console.log(iterator.nom);
+    if(iterator.nom ==="Mandela"){
+      // site1= iterator.nom;
+      nombrePlace1 = iterator.occupe
+    }
+    console.log(nombrePlace1);
+    return nombrePlace1
+  }
+  // data.toArray().then((documents) => {
+  //   console.log(documents);
+  // });
+  // console.log((data.nom));
+  // // const uri = 'mongodb://localhost:27017'; // Replace with your MongoDB connection URI
+  // // const client = new MongoClient(uri);
+
+  // try {
+  //   // await client.connect();
+
+  //   // const database = client.db('your-database-name');
+  //   // const collection = database.collection('your-collection-name');
+  //   const siteCollection = database.collection('site');
+
+  //   await   siteCollection.find({}, function (err, result) {
+  //     if (err) {
+  //       console.log('Error finding document:', err);
+  //       return;
+  //     }
+
+  //     result.toArray().then((documents) => {
+  //       console.log(documents);
+  //     });
+  //   });
+  // } catch (error) {
+  //   console.error('Error:', error);
+  // } 
+}
+
+async function getSite2() {
+
+  let nombrePlace2
+  const data = await site.find({});
+  for (const iterator of data) {
+    // console.log(iterator.nom);
+    if(iterator.nom ==="Surêté"){
+      // site2= iterator.nom;
+      nombrePlace2 = iterator.occupe
+    }
+  }
+
+  return nombrePlace2
+  
+}
+
+
+async function getSite() {
+
+//   let site1,site2,site3;
+  let nombrePlace1,nombrePlace2,nombrePlace3
+  const data = await site.find({});
+  for (const iterator of data) {
+    // console.log(iterator.nom);
+    if(iterator.nom ==="Simplon"){
+      nombrePlace3 = iterator.occupe
+    }else if(iterator.nom ==="Surêté"){
+      // site2= iterator.nom;
+      nombrePlace2 = iterator.occupe
+    }else if(iterator.nom ==="Mandela"){
+      // site1= iterator.nom;
+      nombrePlace1 = iterator.occupe
+    }
+  }
+
+  const place ={
+    place: nombrePlace1
+  }
+
+sendJSONData(place) 
+}
+
+// console.log(getSite3());
+// getSite1() ;
+// Exemple d'utilisation
+
+function sendJSONData(data) {
+  const jsonData = JSON.stringify(data);
+  portSerial0.write(jsonData + '\n', (err) => {
     if (err) {
-      console.error('Erreur lors de l\'envoi des données JSON :', err);
+      console.error('Erreur lors de l\'envoi des données :', err);
     } else {
-      console.log('Données JSON envoyées avec succès !');
+      console.log('Données envoyées avec succès !');
     }
   });
-};
+}
 
-// const dataToSend = { sensorValue: 1234 };
+// // Exemple d'utilisation
+// // console.log("place: ", place);
+// const sensorData = {
+//   temperature: 77,
+//   humidity: 50,
+// };
+
+// sendJSONData(sensorData);
+
+// const dataToSend = { sensorValue: '1234' };
 // sendDataToESP32(dataToSend);
 
 //ECOUTE DU SERVER SUR LE PORT 3000

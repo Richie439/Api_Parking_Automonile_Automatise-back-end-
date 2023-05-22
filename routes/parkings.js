@@ -14,22 +14,22 @@ module.exports = router;
 //Post Method
 router.post('/parking', async (req, res) => {
   const parking = [];
-
-  existingUser = await User.findOne({ _id: req.body.user });
-  existingPlace = await Site.findOne({ _id: req.body.place });
+// console.log(User.findOne({ _id: req.body.user }));
+  existingUser = await User.findOne({ _id: req?.body?.user });
+  existingPlace = await Site.findOne({ _id: req?.body?.place });
 
   if (!existingUser) return res.status(400).send("Cette utilisateur n'est pas abonné...!");
   if (!existingPlace) return res.status(400).send("Cet site n'existe pas...!");
-  if ((existingPlace.nombre - existingPlace.occupe) <= 0) return res.status(403).send("Aucune place disponible...!");
+  if ((existingPlace?.nombre - existingPlace?.occupe) <= 0) return res.status(403).send("Aucune place disponible...!");
   
   const newParking = new Model({
     adresse: req.body.adresse,
     entrer: req.body.entrer,
     sortie: req.body.sortie,
-    place: existingPlace.nom,
-    user: existingUser.matricule,
+    place: existingPlace?.nom,
+    user: existingUser?.matricule,
     dateEntrer: new Date(),
-    dateSortie: null
+    // dateSortie: null
   })
 
   try {
@@ -76,8 +76,9 @@ router.patch('/updatePark/:id', async (req, res) => {
     const options = { new: true };
 
     updatedData.dateSortie = new Date()
-
-    await Site.findByIdAndUpdate(existingPlace,{"occupe": (existingPlace.occupe-1)},options)
+    updatedData.place = existingPlace?.nom
+    console.log(updatedData);
+    await Site.findByIdAndUpdate(existingPlace,{"occupe": (existingPlace?.occupe-1)},options)
     const result = await Model.findByIdAndUpdate(id, updatedData, options)
 
     if (result) return res.send(result)
@@ -93,8 +94,8 @@ router.patch('/updatePark/:id', async (req, res) => {
 router.delete('/delPark', async(req, res) => {
   try {
       // const id = req.params.id;
-      const data = await Model.deleteMany({})
-      res.send(`Le Document avec le nom ${data.prenom} ${data.nom} a été supprimé..`)
+      const data = await Model.deleteMany({})//deleteOne({_id: id})//deleteMany({})
+      res.send(`Le Document avec le nom ${data.place} ${data.nom} a été supprimé..`)
   }
   catch (error) {
       res.status(400).json({ message: error.message })

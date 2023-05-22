@@ -4,7 +4,7 @@ const router = express.Router()
 const authorize = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcrypt");
-const Model = require('../model/parking');
+// const Model = require('../model/parking');
 const User = require('../model/model');
 const Site = require('../model/site');
 
@@ -59,7 +59,26 @@ router.get('/getSite', async (req, res) => {
 
 })
 
-router.patch('/updatePark/:id', async (req, res) => {
+router.get('/getSiteById/:id', async (req, res) => {
+
+
+  const token = req.headers.authorization?.split(' ')[1] || req.headers?.authorization;
+
+//   if (!token) return res.send("Veillez ajouter un token")
+
+  try {
+    const id = req?.params?.id
+    const data = await Site.find({_id: id});
+    return res.json(data)
+  } catch (error) {
+    return res.send(error);
+  }
+
+
+})
+
+
+router.patch('/updateSite/:id', async (req, res) => {
 
   const token = req.headers.authorization?.split(' ')[1] || req.headers?.authorization;
   if (!token) return res.send("Veillez ajouter un token")
@@ -69,8 +88,8 @@ router.patch('/updatePark/:id', async (req, res) => {
     const updatedData = req.body;
     const options = { new: true };
 
-    updatedData.dateSortie = new Date()
-    const result = await Model.findByIdAndUpdate(
+    // updatedData.dateSortie = new Date()
+    const result = await Site.findByIdAndUpdate(
       id, updatedData, options
     )
 
@@ -94,4 +113,4 @@ router.delete('/delSite', async(req, res) => {
     catch (error) {
         res.status(400).json({ message: error.message })
     }
-  })
+})

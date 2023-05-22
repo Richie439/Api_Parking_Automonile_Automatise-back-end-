@@ -50,7 +50,7 @@ router.post("/login", async (req, res, next) => {
         nom: existingUser.nom,
         prenom: existingUser.prenom,
         matricule: existingUser.matricule,
-        tel: existingUser.tel,
+        tel: existingUser.telephone,
         role: existingUser.role,
         token: token,
       },

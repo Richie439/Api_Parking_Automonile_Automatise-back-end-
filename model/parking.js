@@ -8,11 +8,11 @@ const dataSchema = new mongoose.Schema({
     },
     entrer: {
         required: false,
-        type:String
+        type:Boolean
     },
     sortie: {
         required: false,
-        type:String
+        type:Boolean
     },
     place:{
         // required: true,
