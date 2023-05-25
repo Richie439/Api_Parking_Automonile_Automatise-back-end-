@@ -1,57 +1,16 @@
-// require('dotenv').config();
-// const express = require('express');
-// const mongoose = require('mongoose');
-
-// const bodyParser = require('body-parser');
-// const SerialPort = require('serialport');
-// const { ReadlineParser } = require('@serialport/parser-readline');
-// const jwt = require("jsonwebtoken")
-// const cors = require('cors')
+    
 const userRoute = require('./routes/user');
 const parkingRoute = require('./routes/parkings');
 const siteRoute = require('./routes/site');
-// // const io = require("socket.io");
-
-// require('dotenv').config();
-
-
-// // Ici, nous stockons la chaîne dans une variable appelée mongoString.
-// const mongoString = process.env.DATABASE_URL
-
-// // connectons la base de données à notre serveur en utilisant Mongoose
-// mongoose.connect(mongoString);
-// const database = mongoose.connection
-// // database.on signifie qu'il se connectera à la base de données et lancera une erreur si la connexion échoue
-// database.on('error', (error) => {
-//     console.log(error)
-// })
-
-// database.once('connected', () => {
-//     console.log('Database Connected');
-// })
-
-// const app = express();
-
-// app.use(express.json());
-// app.use(bodyParser.json());
-// app.use(cors({origin: '*'}))
-
-// app.use('/api', userRoute)
-// app.use('/api', parkingRoute)
-
-
-
 const { ReadlineParser } = require('@serialport/parser-readline');
 const express = require('express');
 const bodyParser = require('body-parser');
 const SerialPort = require('serialport');
-const jwt = require("jsonwebtoken")
 const mongoose = require('mongoose');
 const cors = require('cors');
 const site = require('./model/site');
-// const routes = require('./routes/route');
-// const serreRoute = require('./routes/serreRouter')
-// const arrosageRoute = require('./routes/arrosageRouter')
+const model = require('./model/model');
+const parking = require('./model/parking');
 
 require('dotenv').config();
 
@@ -64,7 +23,6 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(bodyParser.json());
 
-// app.use('/api', routes)
 app.use('/api', userRoute)
 app.use('/api', parkingRoute)
 app.use('/api', siteRoute)
@@ -83,23 +41,64 @@ module.exports = database;
 
 
 const http = require('http').createServer(app);
-const io = require('socket.io')(http, {
-  cors: {
-    origins:"*" //['http://localhost:3000','*']
-  }
-});
+const io = require('socket.io')(http, {cors: {origins:"*"} });
 
 
 const portSerial0 = new SerialPort('/dev/ttyUSB0', { baudRate: 9600 });
 const parser0 = portSerial0.pipe(new ReadlineParser({ delimiter: '\r\n' }))
-// const portSerial1= new SerialPort('/dev/ttyUSB1', { baudRate:115200  });
-// const parser1 = portSerial1.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+const portSerial1= new SerialPort('/dev/ttyUSB1', { baudRate:115200  });
+const parser1 = portSerial1.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+
+
+
+
+parser0.on('data', (data) => {
+  let dataStr = data.toString();
+  console.log("en attente....");
+  try {
+    
+    let jsonData = JSON.parse(dataStr)
+    // console.log("Valeur reçue", jsonData.rfid);
+    if (jsonData.hasOwnProperty('place')) {
+      console.log("Valeur reçue conforme:", jsonData.rfid);
+    } 
+    
+    let rfid =  jsonData.rfid.replace(/\s/g, '')
+    let servo = jsonData.servo;
+    let move = jsonData.presence;
+    let moveStatus = 0;
+    if(move < 10) moveStatus = 1;
+    if(rfid) checkRfid(rfid);
+       
+    getSite();
+   
+
+    io.on('connection', (socket) => {
+
+      socket.on('test', (msg) => {
+        console.log('tester: ' + msg)
+      });
+
+      socket.emit('pompe_mandela',0)
+      socket.emit('rfid_mandela',rfid)
+      socket.emit('barriere_mandela',servo)
+      socket.emit('mouvement_mandela',moveStatus)   
+    });
+
+  } catch (error) {
+    console.log(error);
+  }
+
+});
 
 io.on('connection', (socket) => {
 
   socket.on('test', (msg) => {
     console.log('tester: ' + msg)
-    // portSerial.write("1")
+  });
+
+  socket.on('admin', (msg) => {
+    console.log('Je suis : ' + msg)
   });
 
   socket.emit('pompe_mandela',1)
@@ -109,51 +108,67 @@ io.on('connection', (socket) => {
   socket.emit('flamme_mandela',1)
   socket.emit('mouvement_mandela',1)
 
-  socket.emit('pompe_surete',1)
-  socket.emit('rfid_surete',1)
+  socket.emit('pompe_surete',0)
+  socket.emit('rfid_surete',0)
   socket.emit('buzzer_surete',0)
-  socket.emit('barriere_surete',1)
+  socket.emit('barriere_surete',0)
   socket.emit('flamme_surete',0)
-  socket.emit('mouvement_surete',1)
+  socket.emit('mouvement_surete',0)
 
-  socket.emit('pompe_simplon',1)
-  socket.emit('rfid_simplon',1)
-  socket.emit('buzzer_simplon',1)
-  socket.emit('barriere_simplon',1)
+  socket.emit('pompe_simplon',0)
+  socket.emit('rfid_simplon',0)
+  socket.emit('buzzer_simplon',0)
+  socket.emit('barriere_simplon',0)
   socket.emit('flamme_simplon',0)
-  socket.emit('mouvement_simplon',1)
+  socket.emit('mouvement_simplon',0)
 });
 
-// parser.on('open', () => {
-//   console.log('Connexion série établie !');
-// });
-let test;
-parser0.on('data', (data) => {
-  const flameValue = data.toString().trim();
-  console.log(`Valeur reçue : ${data}`);
-  getSite();
-  // portSerial0.write("25")
-  // Effectuez ici le traitement souhaité avec la valeur de flamme reçue
+parser1.on('data', (data) => {
+  let dataStr = data.toString();
+
+  
+  try {
+    
+    let jsonData = JSON.parse(dataStr)
+    
+    console.log("Valeur 2 reçue", jsonData);
+   
+    
+    let buzzer =  jsonData.buzzer;
+    let flamme = jsonData.Flamme;
+    let flammeStatus = 0;
+  
+    if(flamme < 1000){
+      console.log("oooooooooookkkkk flamme !!!!!!");
+      flammeStatus = 1;
+      let buzzer={
+        buzzer:1
+      }
+      sendJSONData(buzzer)
+    }
+
+    getSite();
+    
+    io.on('connection', (socket) => {
+
+      socket.on('test', (msg) => {
+        console.log('tester: ' + msg)
+      });
+    
+
+      socket.emit('buzzer_mandela',buzzer)
+      socket.emit('flamme_mandela',flammeStatus)
+     
+    });
+
+  } catch (error) {
+    console.log(error);
+  }
 });
 
-// parser1.on('data', (data) => {
-//   const flameValue = data.toString().trim();
-//   console.log(`Valeur 2 reçue : ${data}`);
- 
-//   const jsonData = test//.toString();
-//   portSerial1.write(test, (err) => {
-//     if (err) {
-//       console.error('Erreur lors de l\'envoi des données JSON :', err);
-//     } else {
-//       console.log('Données JSON envoyées avec succès !');
-//     }
-//   });
-//   // Effectuez ici le traitement souhaité avec la valeur de flamme reçue
-// });
 
 
-
-//ECOUTER LES EVENNEMENTS DEPUIS LE FRONT
+// ECOUTER LES EVENNEMENTS DEPUIS LE FRONT
 
 
 // portSerial.on('open', () => {
@@ -201,7 +216,7 @@ parser0.on('data', (data) => {
 //   });
 // });
 
-//ECOUTER LES EVENNEMENTS DEPUIS ESP32,ARDUINO,MEGA...
+// ECOUTER LES EVENNEMENTS DEPUIS ESP32,ARDUINO,MEGA...
 
 // parser.on('data', (data) => {
   
@@ -309,65 +324,148 @@ parser0.on('data', (data) => {
 
  
 
-async function getSite1() {
+// getParking(1016)
 
-  // let site1;
-  let nombrePlace1
-  const data = await site.find({});
-  for (const iterator of data) {
-    // console.log(iterator.nom);
-    if(iterator.nom ==="Mandela"){
-      // site1= iterator.nom;
-      nombrePlace1 = iterator.occupe
+async function getParking(code) {
+  try {
+    const data = await parking.find({});
+    const user = await model.find({});
+    const siteMandela = await model.find({});
+
+    const mandelaParking = data.find(x => x?.place === "Mandela") || false;
+    const userParking = user.find(x => x?.code === code) || false;
+    const nomSite = siteMandela.find(x => x?.nom === "Mandela") || false;
+    const idSite = nomSite?._id || false;
+
+    const userId = userParking?._id || false;
+    const idParking = mandelaParking?._id || false;
+    const checkUserMatricule = mandelaParking?.user || false;
+    const getMatricule = userParking?.matricule || false;
+
+    console.log(userId, idParking, checkUserMatricule, getMatricule);
+    
+    if (userParking && userId && idParking) {
+      if (checkUserMatricule === getMatricule) {
+        console.log("semaine");
+        const id = mongoose.Types.ObjectId(idParking.toString());
+        console.log(idParking.toString());
+
+        let park = {
+          sortie: "1",
+          place: idSite
+        };
+
+        const updatedPark = await parking.findByIdAndUpdate(id, park, { new: true });
+        console.log("Updated Park:", updatedPark);
+      } else {
+        let park = new parking({
+          adresse: "avenue 22",
+          entrer: "1",
+          sortie: "0",
+          place: idSite,
+          user: userId
+        });
+
+        await park.save();
+      }
+    } else if (!idParking) {
+      console.log("Inactif");
     }
-    console.log(nombrePlace1);
-    return nombrePlace1
+  } catch (error) {
+    console.error("Error:", error);
   }
-  // data.toArray().then((documents) => {
-  //   console.log(documents);
-  // });
-  // console.log((data.nom));
-  // // const uri = 'mongodb://localhost:27017'; // Replace with your MongoDB connection URI
-  // // const client = new MongoClient(uri);
-
-  // try {
-  //   // await client.connect();
-
-  //   // const database = client.db('your-database-name');
-  //   // const collection = database.collection('your-collection-name');
-  //   const siteCollection = database.collection('site');
-
-  //   await   siteCollection.find({}, function (err, result) {
-  //     if (err) {
-  //       console.log('Error finding document:', err);
-  //       return;
-  //     }
-
-  //     result.toArray().then((documents) => {
-  //       console.log(documents);
-  //     });
-  //   });
-  // } catch (error) {
-  //   console.error('Error:', error);
-  // } 
-}
-
-async function getSite2() {
-
-  let nombrePlace2
-  const data = await site.find({});
-  for (const iterator of data) {
-    // console.log(iterator.nom);
-    if(iterator.nom ==="Surêté"){
-      // site2= iterator.nom;
-      nombrePlace2 = iterator.occupe
-    }
-  }
-
-  return nombrePlace2
   
 }
 
+async function getUser() {
+
+  const data = await model?.find({});
+  for (const iterator of data) {
+    // console.log(iterator.nom);
+    if(iterator?.etat === false || isDateLessThanOneMonth(iterator?.dateInscrit)){
+      // site2= iterator.nom;
+      // nombrePlace2 = iterator.occupe
+      console.log(iterator);
+    }
+  }
+
+  
+}
+
+async function checkCode(code) {
+
+  const user = await model?.find({});
+
+  const userCode = user.find(x=>x?.code == code)?? false;
+  const userEtat = userCode?.etat?? false;
+  const dateInscrit = userCode?.dateInscrit?? false;
+  const abonnementUser = userCode?.typeAbonnement?? false;
+  
+  // console.log(userCode,userEtat,dateInscrit,abonnementUser);
+  if(userCode && userEtat){
+    if (abonnementUser =="semaine" && isDateLessThanOneWeek(dateInscrit)) {
+      console.log("semaine")
+    }else if (abonnementUser =="mois" && isDateLessThanOneMonth(dateInscrit)) {
+      console.log("mois")
+    }
+  }else if(!userEtat){
+    console.log("Inactif")
+  }else{
+    console.log("Introuvable")
+  }
+  // userCode ? console.log("ouvrir"):console.log("interdit")
+  // for (const iterator of data) {
+  //   if(iterator?.etat === true || isDateLessThanOneMonth(iterator?.dateInscrit)){
+  //     if(iterator?.code == code ){
+  //       console.log("ouvrir");
+  //       return;
+  //     }
+  //     // console.log(iterator);
+  //   }//else 
+  // } 
+}
+
+async function checkRfid(rfid) {
+
+  const user = await model?.find({});
+
+  const userRfid = user.find(x=>x?.rfid == rfid.replace(/\s/g, ''))?? false;
+  const userEtat = userRfid?.etat?? false;
+  const dateInscrit = userRfid?.dateInscrit?? false;
+  const abonnementUser = userRfid?.typeAbonnement?? false;
+  
+  // console.log(userRfid,userEtat,dateInscrit,abonnementUser);
+  if(userRfid){
+    if (abonnementUser =="semaine" && isDateLessThanOneWeek(dateInscrit)) {
+      console.log("abonnement semaine expiré")
+    }else if (abonnementUser =="mois" && isDateLessThanOneMonth(dateInscrit)) {
+      console.log("abonnement mois expiré")
+    }else{
+      console.log("ok connexion");
+      const data = await site.find({});
+      const mandela = data?.find(x=>x?.nom == "Mandela");
+      mandela.occupe = mandela.occupe -1 
+
+      mandela.save();
+
+      const jsonData = {
+        servo: 1
+      };
+      console.log("mandela :",  mandela.occupe);
+     return sendJSONData(jsonData) 
+    }
+
+  }else if(!userEtat){
+    console.log("Carte invalid")
+    const jsonData = {
+      user: 0
+    };
+    sendJSONData(jsonData) 
+  }else{
+    console.log("Introuvable")
+  }
+  
+}
 
 async function getSite() {
 
@@ -386,17 +484,21 @@ async function getSite() {
       nombrePlace1 = iterator.occupe
     }
   }
+  
+  // let place = nombrePlace1
+  // const places ={
+  //   place: place
+  // }
 
-  const place ={
+  // let jsonDataParse = JSON.stringify(places);
+  const jsonData = {
     place: nombrePlace1
-  }
+  };
+  
+  // const place = JSON.stringify(jsonData);
 
-sendJSONData(place) 
+  sendJSONData(jsonData) 
 }
-
-// console.log(getSite3());
-// getSite1() ;
-// Exemple d'utilisation
 
 function sendJSONData(data) {
   const jsonData = JSON.stringify(data);
@@ -409,8 +511,29 @@ function sendJSONData(data) {
   });
 }
 
-// // Exemple d'utilisation
-// // console.log("place: ", place);
+const isDateLessThanOneMonth = (dateString) => {
+  const currentDate = new Date();
+  const targetDate = new Date(dateString);
+
+  // Calculer la date il y a un mois à partir de la date actuelle
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(currentDate.getMonth() - 1);
+
+  return targetDate < oneMonthAgo;
+};
+
+const isDateLessThanOneWeek = (dateString) => {
+  const currentDate = new Date();
+  const targetDate = new Date(dateString);
+
+  // Calculer la date il y a un mois à partir de la date actuelle
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setDate(currentDate.getDate() - 7);
+
+  return targetDate < oneMonthAgo;
+};
+
+
 // const sensorData = {
 //   temperature: 77,
 //   humidity: 50,

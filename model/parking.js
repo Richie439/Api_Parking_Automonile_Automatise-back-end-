@@ -27,10 +27,6 @@ const dataSchema = new mongoose.Schema({
         required: false,
         type: Date
     },
-    // site:{
-    //     type: Number,
-    //     ref: 'site'
-    // },
     user:{
         type: String,
         ref: 'users'

@@ -57,26 +57,22 @@ router.post("/login", async (req, res, next) => {
     });
 });
 
-router.post('/compte',   async(req, res, next) => {
-  const account = [];
-    
- 
-     
-  
-})
 
 router.post('/post', async (req, res) => {
   const users = [];
 
-  const tel = await Model.find();
-  console.log(tel.find(x=>x?.telephone === req.body.telephone));
+  const user = await Model.find();
+  // console.log(tel.find(x=>x?.telephone === req.body.telephone));
 
-  const findTel = tel.find(x=>x?.telephone === req?.body?.telephone)?? false;
-  const findMail = tel.find(x=>x?.email === req?.body?.email)?? false;
-  const findRfid = tel.find(x=>x?.rfid === req?.body?.rfid)?? false;
+  const findTel = user.find(x=>x?.telephone === req?.body?.telephone)?? false;
+  const findMail = user.find(x=>x?.email === req?.body?.email)?? false;
+  const findRfid = user.find(x=>x?.rfid === req?.body?.rfid)?? false;
+  const findCode = user.find(x=>x?.code === req?.body?.code)?? false;
+  
   if(findTel) return res.send(`Ce numero existe déjà `); 
   if(findMail) return res.send(`Ce email existe déjà `); 
   if(findRfid) return res.send(`Cette carte est déjà utilisée`); 
+  if(findCode) return res.send(`Cet code est déjà utilisé`); 
     
   const newUser = new Model({
       nom: req.body.nom,
@@ -187,8 +183,8 @@ router.patch('/update/:id',  async (req, res) => {
 
 router.delete('/delete', async(req, res) => {
   try {
-      // const id = req.params.id;
-      const data = await Model.deleteMany({})
+      const id = req.params.id;
+      const data = await Model.deleteOne({_id:id})
       res.send(`Le Document avec le nom ${data.prenom} ${data.nom} a été supprimé..`)
   }
   catch (error) {
