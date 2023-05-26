@@ -62,7 +62,7 @@ parser0.on('data', (data) => {
   console.log("en attente....");
   try {
     
-    let jsonData = JSON.parse(dataStr)
+    let jsonData = JSON.parse(data)
     // console.log("Valeur reçue", jsonData.rfid);
     if (jsonData?.hasOwnProperty('place')) {
       console.log("Valeur reçue conforme:", jsonData.rfid);
