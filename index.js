@@ -44,14 +44,19 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http, {cors: {origins:"*"} });
 
 
+
+
 const portSerial0 = new SerialPort('/dev/ttyUSB0', { baudRate: 9600 });
 const parser0 = portSerial0.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 const portSerial1= new SerialPort('/dev/ttyUSB1', { baudRate:115200  });
 const parser1 = portSerial1.pipe(new ReadlineParser({ delimiter: '\r\n' }))
+// const portSerial2 = new SerialPort('/dev/ttyUSB0', { baudRate: 19200 });
+// const parser2 = portSerial0.pipe(new ReadlineParser({ delimiter: '\r\n' }))
 
 
-
-
+let moveStatus = 0;
+let flamme_and_buzzer= 0;
+let distance ;
 parser0.on('data', (data) => {
   let dataStr = data.toString();
   console.log("en attente....");
@@ -59,31 +64,29 @@ parser0.on('data', (data) => {
     
     let jsonData = JSON.parse(dataStr)
     // console.log("Valeur reçue", jsonData.rfid);
-    if (jsonData.hasOwnProperty('place')) {
+    if (jsonData?.hasOwnProperty('place')) {
       console.log("Valeur reçue conforme:", jsonData.rfid);
     } 
     
     let rfid =  jsonData.rfid.replace(/\s/g, '')
     let servo = jsonData.servo;
+    let flamme = jsonData.flamme;
     let move = jsonData.presence;
-    let moveStatus = 0;
-    if(move < 10) moveStatus = 1;
-    if(rfid) checkRfid(rfid);
-       
+    console.log("distance :", move);
+    distance = move
+    if(move < 10) moveStatus = 1; else moveStatus = 0;
+    if(flamme < 1000) flamme_and_buzzer= 1; else flamme_and_buzzer= 0 
+    if(rfid) checkRfid(rfid,move);
+    
+    
+
     getSite();
+
+    io.emit('buzzer_mandela',flamme_and_buzzer);
+    io.emit('flamme_mandela',flamme_and_buzzer);
+    io.emit('barriere_mandela',servo);
+    io.emit('mouvement_mandela',moveStatus);
    
-
-    io.on('connection', (socket) => {
-
-      socket.on('test', (msg) => {
-        console.log('tester: ' + msg)
-      });
-
-      socket.emit('pompe_mandela',0)
-      socket.emit('rfid_mandela',rfid)
-      socket.emit('barriere_mandela',servo)
-      socket.emit('mouvement_mandela',moveStatus)   
-    });
 
   } catch (error) {
     console.log(error);
@@ -91,80 +94,57 @@ parser0.on('data', (data) => {
 
 });
 
-io.on('connection', (socket) => {
 
-  socket.on('test', (msg) => {
-    console.log('tester: ' + msg)
-  });
-
-  socket.on('admin', (msg) => {
-    console.log('Je suis : ' + msg)
-  });
-
-  socket.emit('pompe_mandela',1)
-  socket.emit('rfid_mandela',1)
-  socket.emit('buzzer_mandela',1)
-  socket.emit('barriere_mandela',0)
-  socket.emit('flamme_mandela',1)
-  socket.emit('mouvement_mandela',1)
-
-  socket.emit('pompe_surete',0)
-  socket.emit('rfid_surete',0)
-  socket.emit('buzzer_surete',0)
-  socket.emit('barriere_surete',0)
-  socket.emit('flamme_surete',0)
-  socket.emit('mouvement_surete',0)
-
-  socket.emit('pompe_simplon',0)
-  socket.emit('rfid_simplon',0)
-  socket.emit('buzzer_simplon',0)
-  socket.emit('barriere_simplon',0)
-  socket.emit('flamme_simplon',0)
-  socket.emit('mouvement_simplon',0)
-});
 
 parser1.on('data', (data) => {
   let dataStr = data.toString();
 
+  console.log("test passe :",dataStr);
+  console.log(dataStr.slice(2));
+  if(dataStr.slice(2))checkCode(dataStr.slice(2),distance);
+  console.log(distance);
   
-  try {
-    
-    let jsonData = JSON.parse(dataStr)
-    
-    console.log("Valeur 2 reçue", jsonData);
-   
-    
-    let buzzer =  jsonData.buzzer;
-    let flamme = jsonData.Flamme;
-    let flammeStatus = 0;
-  
-    if(flamme < 1000){
-      console.log("oooooooooookkkkk flamme !!!!!!");
-      flammeStatus = 1;
-      let buzzer={
-        buzzer:1
-      }
-      sendJSONData(buzzer)
-    }
-
-    getSite();
-    
-    io.on('connection', (socket) => {
-
-      socket.on('test', (msg) => {
-        console.log('tester: ' + msg)
-      });
-    
-
-      socket.emit('buzzer_mandela',buzzer)
-      socket.emit('flamme_mandela',flammeStatus)
-     
-    });
-
-  } catch (error) {
-    console.log(error);
-  }
 });
+
+// parser2.on('data', (data) => {
+//   let dataStr = data.toString();
+//   let jsonData = JSON.parse(dataStr)
+//   console.log("Arduino ....", jsonData);
+//   // try {
+    
+//   //   let jsonData = JSON.parse(dataStr)
+//   //   // console.log("Valeur reçue", jsonData.rfid);
+//   //   if (jsonData.hasOwnProperty('place')) {
+//   //     console.log("Valeur reçue conforme:", jsonData.rfid);
+//   //   } 
+    
+//   //   let rfid =  jsonData.rfid.replace(/\s/g, '')
+//   //   let servo = jsonData.servo;
+//   //   let move = jsonData.presence;
+//   //   let moveStatus = 0;
+//   //   if(move < 10) moveStatus = 1;
+//   //   if(rfid) checkRfid(rfid);
+       
+//   //   getSite();
+   
+
+//   //   io.on('connection', (socket) => {
+
+//   //     socket.on('test', (msg) => {
+//   //       console.log('tester: ' + msg)
+//   //     });
+
+//   //     socket.emit('pompe_mandela',0)
+//   //     socket.emit('rfid_mandela',rfid)
+//   //     socket.emit('barriere_mandela',servo)
+//   //     socket.emit('mouvement_mandela',moveStatus)   
+//   //   });
+
+//   // } catch (error) {
+//   //   console.log(error);
+//   // }
+
+// });
 
 
 
@@ -392,21 +372,40 @@ async function getUser() {
   
 }
 
-async function checkCode(code) {
+async function checkCode(code,distance) {
 
   const user = await model?.find({});
 
   const userCode = user.find(x=>x?.code == code)?? false;
-  const userEtat = userCode?.etat?? false;
+  const userEtat = userCode?.etat == true ?? false;
   const dateInscrit = userCode?.dateInscrit?? false;
   const abonnementUser = userCode?.typeAbonnement?? false;
-  
+  console.log(userCode);
   // console.log(userCode,userEtat,dateInscrit,abonnementUser);
   if(userCode && userEtat){
     if (abonnementUser =="semaine" && isDateLessThanOneWeek(dateInscrit)) {
-      console.log("semaine")
+      console.log("abonnement semaine expiré")
     }else if (abonnementUser =="mois" && isDateLessThanOneMonth(dateInscrit)) {
-      console.log("mois")
+      console.log("abonnement mois expiré")
+    }else{
+      console.log("code est ok");
+      const data = await site.find({});
+      const mandela = data?.find(x=>x?.nom == "Mandela");
+      
+      const jsonData = {
+        servo: 1
+      }
+       sendJSONData(jsonData) 
+       mandela.occupe = mandela.occupe -1 
+      if(distance <= 10 ){ 
+
+        mandela.save();
+
+      }
+      console.log("mandela :",  mandela.occupe);
+      // const jsonData = {
+      //   servo: 1,
+      // };
     }
   }else if(!userEtat){
     console.log("Inactif")
@@ -425,7 +424,7 @@ async function checkCode(code) {
   // } 
 }
 
-async function checkRfid(rfid) {
+async function checkRfid(rfid,distance) {
 
   const user = await model?.find({});
 
@@ -434,8 +433,8 @@ async function checkRfid(rfid) {
   const dateInscrit = userRfid?.dateInscrit?? false;
   const abonnementUser = userRfid?.typeAbonnement?? false;
   
-  // console.log(userRfid,userEtat,dateInscrit,abonnementUser);
-  if(userRfid){
+  console.log(userEtat);
+  if(userRfid && userEtat){
     if (abonnementUser =="semaine" && isDateLessThanOneWeek(dateInscrit)) {
       console.log("abonnement semaine expiré")
     }else if (abonnementUser =="mois" && isDateLessThanOneMonth(dateInscrit)) {
@@ -444,15 +443,19 @@ async function checkRfid(rfid) {
       console.log("ok connexion");
       const data = await site.find({});
       const mandela = data?.find(x=>x?.nom == "Mandela");
-      mandela.occupe = mandela.occupe -1 
 
-      mandela.save();
-
+      if( mandela.occupe == 0) return;
       const jsonData = {
         servo: 1
-      };
+      }
+     sendJSONData(jsonData) 
+      if(distance <= 10 ){ 
+        mandela.occupe = mandela.occupe -1 
+        getParking(1020)
+        mandela.save();
+
+      }
       console.log("mandela :",  mandela.occupe);
-     return sendJSONData(jsonData) 
     }
 
   }else if(!userEtat){
@@ -533,16 +536,6 @@ const isDateLessThanOneWeek = (dateString) => {
   return targetDate < oneMonthAgo;
 };
 
-
-// const sensorData = {
-//   temperature: 77,
-//   humidity: 50,
-// };
-
-// sendJSONData(sensorData);
-
-// const dataToSend = { sensorValue: '1234' };
-// sendDataToESP32(dataToSend);
 
 //ECOUTE DU SERVER SUR LE PORT 3000
 http.listen(8000, () => {
